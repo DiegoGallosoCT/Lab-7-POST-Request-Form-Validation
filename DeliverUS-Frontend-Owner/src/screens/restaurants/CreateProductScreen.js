@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { ScrollView, StyleSheet, Switch, View } from 'react-native'
 import InputItem from '../../components/InputItem'
 import TextRegular from '../../components/TextRegular'
 import * as GlobalStyles from '../../styles/GlobalStyles'
 import defaultProductImage from '../../../assets/product.jpeg'
 import { getProductCategories, create } from '../../api/ProductEndpoints'
 import { showMessage } from 'react-native-flash-message'
-import DropDownPicker from 'react-native-dropdown-picker'
 import * as yup from 'yup'
-import { ErrorMessage, Formik } from 'formik'
+import { Formik } from 'formik'
 import TextError from '../../components/TextError'
 import ImagePicker from '../../components/ImagePicker'
+import SubmitButton from '../../components/SubmitButton'
+import DropDownPickerItem from '../../components/DropDownPickerItem'
 
 export default function CreateProductScreen({ navigation, route }) {
   const [open, setOpen] = useState(false)
   const [productCategories, setProductCategories] = useState([])
+  const [backendErrors, setBackendErrors] = useState()
 
   const initialProductValues = {
     name: null,
@@ -26,7 +27,25 @@ export default function CreateProductScreen({ navigation, route }) {
     productCategoryId: null,
     availability: true
   }
-  
+
+  const validationSchema = yup.object().shape({
+    name: yup.string().max(255, 'Name too long').required('Name is required'),
+    price: yup
+      .number('Please enter a valid price value')
+      .positive('Please enter a valid price value')
+      .required('Price is required'),
+    order: yup
+      .number('Please enter a valid order/position value')
+      .positive('Please enter a valid order/position value')
+      .required('Order/position is required'),
+    availability: yup.boolean().required('Availability is required'),
+    productCategoryId: yup
+      .number()
+      .positive()
+      .integer()
+      .required('Product category is required')
+  })
+
   useEffect(() => {
     async function fetchProductCategories() {
       try {
@@ -52,10 +71,28 @@ export default function CreateProductScreen({ navigation, route }) {
     fetchProductCategories()
   }, [])
 
-  
+  const createProduct = async values => {
+    setBackendErrors([])
+    try {
+      const createdRestaurant = await create(values)
+      showMessage({
+        message: `Restaurant ${createdRestaurant.name} successfully created`,
+        type: 'success',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+      navigation.navigate('RestaurantsScreen', { dirty: true })
+    } catch (error) {
+      console.log(error)
+      setBackendErrors(error.errors)
+    }
+  }
+
   return (
     <Formik
+      validationSchema={validationSchema}
       initialValues={initialProductValues}
+      onSubmit={createProduct}
     >
       {({ handleSubmit, setFieldValue, values }) => (
         <ScrollView>
@@ -66,21 +103,15 @@ export default function CreateProductScreen({ navigation, route }) {
               <InputItem name="price" label="Price:" />
               <InputItem name="order" label="Order/position to be rendered:" />
 
-              <DropDownPicker
+              <DropDownPickerItem
+                name="productCategoryId"
                 open={open}
-                value={values.productCategoryId}
-                items={productCategories}
                 setOpen={setOpen}
-                onSelectItem={item => {
-                  setFieldValue('productCategoryId', item.value)
-                }}
+                items={productCategories}
                 setItems={setProductCategories}
                 placeholder="Select the product category"
-                containerStyle={{ height: 40, marginTop: 20, marginBottom: 20 }}
-                style={{ backgroundColor: GlobalStyles.brandBackground }}
-                dropDownStyle={{ backgroundColor: '#fafafa' }}
+                containerStyle={{ marginBottom: 20 }}
               />
-            
 
               <TextRegular>Is it available?</TextRegular>
               <Switch
@@ -95,7 +126,6 @@ export default function CreateProductScreen({ navigation, route }) {
                 style={styles.switch}
                 onValueChange={value => setFieldValue('availability', value)}
               />
-     
 
               <ImagePicker
                 label="Image:"
@@ -104,32 +134,7 @@ export default function CreateProductScreen({ navigation, route }) {
                 onImagePicked={result => setFieldValue('image', result)}
               />
 
- 
-
-              <Pressable
-                onPress={() => console.log('Button pressed')}
-                style={({ pressed }) => [
-                  {
-                    backgroundColor: pressed
-                      ? GlobalStyles.brandSuccessTap
-                      : GlobalStyles.brandSuccess
-                  },
-                  styles.button
-                ]}
-              >
-                <View
-                  style={[
-                    { flex: 1, flexDirection: 'row', justifyContent: 'center' }
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="content-save"
-                    color={'white'}
-                    size={20}
-                  />
-                  <TextRegular textStyle={styles.text}>Save</TextRegular>
-                </View>
-              </Pressable>
+              <SubmitButton onPress={handleSubmit} />
             </View>
           </View>
         </ScrollView>
@@ -139,20 +144,6 @@ export default function CreateProductScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  button: {
-    borderRadius: 8,
-    height: 40,
-    padding: 10,
-    width: '100%',
-    marginTop: 20,
-    marginBottom: 20
-  },
-  text: {
-    fontSize: 16,
-    color: 'white',
-    textAlign: 'center',
-    marginLeft: 5
-  },
   imagePicker: {
     height: 40,
     paddingLeft: 10,

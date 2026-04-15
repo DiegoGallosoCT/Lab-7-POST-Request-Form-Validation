@@ -33,9 +33,9 @@ export default function RestaurantDetailScreen({ navigation, route }) {
           source={
             restaurant?.heroImage
               ? {
-                uri: API_BASE_URL + '/' + restaurant.heroImage,
-                cache: 'force-cache'
-              }
+                  uri: API_BASE_URL + '/' + restaurant.heroImage,
+                  cache: 'force-cache'
+                }
               : undefined
           }
           style={styles.imageBackground}
@@ -49,9 +49,9 @@ export default function RestaurantDetailScreen({ navigation, route }) {
               source={
                 restaurant.logo
                   ? {
-                    uri: API_BASE_URL + '/' + restaurant.logo,
-                    cache: 'force-cache'
-                  }
+                      uri: API_BASE_URL + '/' + restaurant.logo,
+                      cache: 'force-cache'
+                    }
                   : undefined
               }
             />
